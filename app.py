@@ -9,7 +9,7 @@ st.set_page_config(page_title="Customer ML App", layout="centered")
 st.title("📊 Customer Classification & Regression App")
 
 # Load data
-df = pd.read_csv("synthetic_customers_cleaned.csv")
+df = pd.read_csv("synthetic_customers_cleaned (1).csv")
 
 features = ["age", "income", "credit_score", "total_spent"]
 X = df[features]

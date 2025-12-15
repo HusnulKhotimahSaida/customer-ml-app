@@ -1,33 +1,24 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import (
-    confusion_matrix,
-    accuracy_score,
-    mean_absolute_error
-)
+from sklearn.metrics import confusion_matrix, accuracy_score, mean_absolute_error
 
-# =========================
+# =====================
 # KONFIGURASI HALAMAN
-# =========================
+# =====================
 st.set_page_config(
-    page_title="Customer Classification & Regression App",
+    page_title="Customer ML App",
     layout="centered"
 )
 
 st.title("📊 Customer Classification & Regression App")
-st.markdown(
-    "Aplikasi ini menggunakan **Ensemble Method (Random Forest)** "
-    "untuk melakukan **klasifikasi subscription** dan **regresi churn risk** pelanggan."
-)
 
-# =========================
-# LOAD DATA (CACHED)
-# =========================
+# =====================
+# LOAD DATA (AMAN)
+# =====================
 @st.cache_data
 def load_data():
     return pd.read_csv("synthetic_customers_cleaned (1).csv")
@@ -36,66 +27,15 @@ df = load_data()
 
 features = ["age", "income", "credit_score", "total_spent"]
 
-# =========================
-# TRAIN MODEL (CACHED)
-# =========================
-@st.cache_resource
-def train_models(df):
-    X = df[features]
-
-    # ===== KLASIFIKASI =====
-    y_class = df["subscription"]
-    Xc_train, Xc_test, yc_train, yc_test = train_test_split(
-        X, y_class, test_size=0.2, random_state=42
-    )
-
-    clf = RandomForestClassifier(
-        n_estimators=50,
-        random_state=42
-    )
-    clf.fit(Xc_train, yc_train)
-
-    # ===== REGRESI =====
-    y_reg = df["churn_risk"]
-    Xr_train, Xr_test, yr_train, yr_test = train_test_split(
-        X, y_reg, test_size=0.2, random_state=42
-    )
-
-    reg = RandomForestRegressor(
-        n_estimators=50,
-        random_state=42
-    )
-    reg.fit(Xr_train, yr_train)
-
-    return clf, reg, Xc_test, yc_test, Xr_test, yr_test
-
-
-clf, reg, Xc_test, yc_test, Xr_test, yr_test = train_models(df)
-
-# =========================
+# =====================
 # INPUT USER
-# =========================
+# =====================
 st.header("🧑 Input Data Pelanggan")
 
-col1, col2 = st.columns(2)
-
-with col1:
-    age = st.slider("Umur", 18, 80, 30)
-    income = st.number_input(
-        "Pendapatan",
-        min_value=0,
-        value=5_000_000,
-        step=500_000
-    )
-
-with col2:
-    credit_score = st.slider("Credit Score", 300, 850, 650)
-    total_spent = st.number_input(
-        "Total Pengeluaran",
-        min_value=0,
-        value=1_000_000,
-        step=100_000
-    )
+age = st.slider("Umur", 18, 80, 30)
+income = st.number_input("Pendapatan", 0, 100_000_000, 5_000_000)
+credit_score = st.slider("Credit Score", 300, 850, 650)
+total_spent = st.number_input("Total Pengeluaran", 0, 50_000_000, 1_000_000)
 
 input_df = pd.DataFrame([{
     "age": age,
@@ -104,69 +44,63 @@ input_df = pd.DataFrame([{
     "total_spent": total_spent
 }])
 
-# =========================
-# PREDIKSI USER
-# =========================
-st.subheader("📌 Hasil Prediksi")
+# =====================
+# TRAIN MODEL (DIKONTROL TOMBOL)
+# =====================
+st.header("⚙️ Proses Model")
 
-# --- Klasifikasi ---
-pred_class = clf.predict(input_df)[0]
-pred_proba = clf.predict_proba(input_df)[0][1]
+if st.button("🚀 Jalankan Model"):
+    with st.spinner("Melatih model, mohon tunggu..."):
 
-if pred_class == 1:
-    st.success(
-        f"Status Subscription: **BERLANGGANAN**  \n"
-        f"Probabilitas: **{pred_proba:.2f}**"
-    )
-else:
-    st.warning(
-        f"Status Subscription: **TIDAK BERLANGGANAN**  \n"
-        f"Probabilitas: **{pred_proba:.2f}**"
-    )
+        X = df[features]
 
-# --- Regresi ---
-pred_churn = reg.predict(input_df)[0]
-st.info(f"Prediksi Churn Risk: **{pred_churn:.2f}**")
+        # ----- KLASIFIKASI -----
+        y_class = df["subscription"]
+        Xc_train, Xc_test, yc_train, yc_test = train_test_split(
+            X, y_class, test_size=0.2, random_state=42
+        )
 
-# =========================
-# EVALUASI & VISUALISASI
-# =========================
-st.header("📈 Evaluasi Model")
+        clf = RandomForestClassifier(n_estimators=30, random_state=42)
+        clf.fit(Xc_train, yc_train)
 
-# ----- Confusion Matrix -----
-y_pred_c = clf.predict(Xc_test)
-cm = confusion_matrix(yc_test, y_pred_c)
+        # ----- REGRESI -----
+        y_reg = df["churn_risk"]
+        Xr_train, Xr_test, yr_train, yr_test = train_test_split(
+            X, y_reg, test_size=0.2, random_state=42
+        )
 
-fig1, ax1 = plt.subplots()
-ax1.imshow(cm)
-ax1.set_title("Confusion Matrix - Subscription")
-ax1.set_xlabel("Predicted")
-ax1.set_ylabel("Actual")
-st.pyplot(fig1)
+        reg = RandomForestRegressor(n_estimators=30, random_state=42)
+        reg.fit(Xr_train, yr_train)
 
-st.write("Accuracy:", accuracy_score(yc_test, y_pred_c))
+    st.success("Model berhasil dilatih!")
 
-# ----- Regresi Plot -----
-y_pred_r = reg.predict(Xr_test)
+    # =====================
+    # HASIL PREDIKSI
+    # =====================
+    st.subheader("📌 Hasil Prediksi")
 
-fig2, ax2 = plt.subplots()
-ax2.scatter(yr_test, y_pred_r, alpha=0.6)
-ax2.plot(
-    [yr_test.min(), yr_test.max()],
-    [yr_test.min(), yr_test.max()],
-    linestyle="--"
-)
-ax2.set_title("Actual vs Predicted Churn Risk")
-ax2.set_xlabel("Actual Churn Risk")
-ax2.set_ylabel("Predicted Churn Risk")
-st.pyplot(fig2)
+    status = clf.predict(input_df)[0]
+    prob = clf.predict_proba(input_df)[0][1]
+    churn = reg.predict(input_df)[0]
 
-st.write("MAE:", mean_absolute_error(yr_test, y_pred_r))
+    st.write("Status Subscription:", "Berlangganan" if status == 1 else "Tidak Berlangganan")
+    st.write("Probabilitas:", round(prob, 2))
+    st.write("Prediksi Churn Risk:", round(churn, 2))
 
-# =========================
-# FOOTER
-# =========================
-st.markdown("---")
-st.caption(
-    "© Customer ML App | Ensemble Method (Random Forest) | Streamlit Deployment"
-)
+    # =====================
+    # EVALUASI
+    # =====================
+    st.header("📈 Evaluasi Model")
+
+    # Confusion Matrix
+    cm = confusion_matrix(yc_test, clf.predict(Xc_test))
+    fig, ax = plt.subplots()
+    ax.imshow(cm)
+    ax.set_title("Confusion Matrix")
+    st.pyplot(fig)
+
+    st.write("Accuracy:", accuracy_score(yc_test, clf.predict(Xc_test)))
+
+    # Regresi Error
+    y_pred_r = reg.predict(Xr_test)
+    st.write("MAE:", mean_absolute_error(yr_test, y_pred_r))

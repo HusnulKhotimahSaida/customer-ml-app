@@ -30,12 +30,11 @@ st.markdown(
 # =========================
 @st.cache_data
 def load_data():
-    return pd.read_csv("synthetic_customers_cleaned (1).csv")
+    return pd.read_csv("synthetic_customers_cleaned.csv")
 
 df = load_data()
 
 features = ["age", "income", "credit_score", "total_spent"]
-X = df[features]
 
 # =========================
 # TRAIN MODEL (CACHED)
@@ -44,7 +43,7 @@ X = df[features]
 def train_models(df):
     X = df[features]
 
-    # ----- KLASIFIKASI -----
+    # ===== KLASIFIKASI =====
     y_class = df["subscription"]
     Xc_train, Xc_test, yc_train, yc_test = train_test_split(
         X, y_class, test_size=0.2, random_state=42
@@ -56,7 +55,7 @@ def train_models(df):
     )
     clf.fit(Xc_train, yc_train)
 
-    # ----- REGRESI -----
+    # ===== REGRESI =====
     y_reg = df["churn_risk"]
     Xr_train, Xr_test, yr_train, yr_test = train_test_split(
         X, y_reg, test_size=0.2, random_state=42
@@ -85,8 +84,8 @@ with col1:
     income = st.number_input(
         "Pendapatan",
         min_value=0,
-        value=5000000,
-        step=500000
+        value=5_000_000,
+        step=500_000
     )
 
 with col2:
@@ -94,8 +93,8 @@ with col2:
     total_spent = st.number_input(
         "Total Pengeluaran",
         min_value=0,
-        value=1000000,
-        step=100000
+        value=1_000_000,
+        step=100_000
     )
 
 input_df = pd.DataFrame([{
@@ -110,7 +109,7 @@ input_df = pd.DataFrame([{
 # =========================
 st.subheader("📌 Hasil Prediksi")
 
-# Klasifikasi
+# --- Klasifikasi ---
 pred_class = clf.predict(input_df)[0]
 pred_proba = clf.predict_proba(input_df)[0][1]
 
@@ -125,7 +124,7 @@ else:
         f"Probabilitas: **{pred_proba:.2f}**"
     )
 
-# Regresi
+# --- Regresi ---
 pred_churn = reg.predict(input_df)[0]
 st.info(f"Prediksi Churn Risk: **{pred_churn:.2f}**")
 
@@ -151,12 +150,15 @@ st.write("Accuracy:", accuracy_score(yc_test, y_pred_c))
 y_pred_r = reg.predict(Xr_test)
 
 fig2, ax2 = plt.subplots()
-ax2.scatter(Xr_test.index, y_pred_r, label="Predicted", alpha=0.6)
-ax2.scatter(Xr_test.index, yr_test, label="Actual", alpha=0.6)
+ax2.scatter(yr_test, y_pred_r, alpha=0.6)
+ax2.plot(
+    [yr_test.min(), yr_test.max()],
+    [yr_test.min(), yr_test.max()],
+    linestyle="--"
+)
 ax2.set_title("Actual vs Predicted Churn Risk")
-ax2.set_xlabel("Data Index")
-ax2.set_ylabel("Churn Risk")
-ax2.legend()
+ax2.set_xlabel("Actual Churn Risk")
+ax2.set_ylabel("Predicted Churn Risk")
 st.pyplot(fig2)
 
 st.write("MAE:", mean_absolute_error(yr_test, y_pred_r))
